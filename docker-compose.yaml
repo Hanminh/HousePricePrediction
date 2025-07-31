@@ -1,0 +1,63 @@
+version: '3.8'
+
+x-airflow-common: &airflow-common
+  image: minh1009/airflow:latest
+  build:
+    context: .
+    dockerfile: deployment/airflow/Dockerfile
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
+  volumes:
+    - ./dags:/opt/airflow/dags
+
+services:
+  fastapi:
+    image: minh1009/fastapi:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+
+  streamlit:
+    image: minh1009/streamlit:v1
+    build:
+      context: ./streamlit_app
+      dockerfile: Dockerfile
+    ports:
+      - 8501:8501
+    environment:
+      - API_URL=http://fastapi:8000
+
+  # airflow-webserver:
+  #   <<: *airflow-common
+  #   command: api-server
+  #   ports:
+  #     - 8080:8080
+  #   depends_on:
+  #     - airflow-scheduler
+
+  # airflow-scheduler:
+  #   <<: *airflow-common
+  #   command: scheduler
+
+  airflow:
+    <<: *airflow-common
+    command: standalone
+    # volumes:
+    #   - ./configs/airflow:/opt/airflow
+    ports:
+      - 8080:8080
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    build:
+      context: ./deployment/mlflow
+      dockerfile: Dockerfile
+    ports:
+      - "5555:5000" 
+    expose:
+      - "5000"
+    command: mlflow server --host 0.0.0.0 --backend-store-uri sqlite:///mlflow.db --default-artifact-root /tmp/mlruns
+    container_name: mlflow-server
