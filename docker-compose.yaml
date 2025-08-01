@@ -50,6 +50,8 @@ services:
     #   - ./configs/airflow:/opt/airflow
     ports:
       - 8080:8080
+    expose:
+      - "8080"
   mlflow:
     image: ghcr.io/mlflow/mlflow:latest
     build:
@@ -61,3 +63,14 @@ services:
       - "5000"
     command: mlflow server --host 0.0.0.0 --backend-store-uri sqlite:///mlflow.db --default-artifact-root /tmp/mlruns
     container_name: mlflow-server
+
+  jenkins:
+    image: minh1009/jenkins
+    build:
+      context: ./deployment/jenkins
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    expose:
+      - "8080"
+    

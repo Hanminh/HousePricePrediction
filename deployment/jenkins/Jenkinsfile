@@ -1,0 +1,36 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKERHUB_USER= 'minh1009'
+    }
+
+    stages {
+        stage('checkout code') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/Hanminh/HousePricePrediction'
+            }
+        }
+        stage('build docker image') {
+            steps {
+                sh 'docker compose build'
+            }
+        }
+        stage('deploy docker image') {
+            steps {
+                sh 'docker compose up -d'
+            }
+        }
+        stage('Trigger Airflow DAG') {
+            steps {
+                sh '''
+                curl -X POST "http://localhost:8080/api/v1/dags/mlops_flow/dagRuns" \
+                -H "Content-Type: application/json" \
+                -u "admin:admin" \
+                -d '{"conf": {"trigger": "jenkins"}}'
+                '''
+            }
+        }
+    }
+}
